@@ -1,6 +1,6 @@
 # Script name:      maintanance-server.ps1
-# Version:          v1.1
-# Created on:       19/07/2021
+# Version:          v1.2
+# Created on:       20/07/2021
 # Author:           Mikel
 # On Github:        https://github.com/willemdh/check_ms_iis_application_pool
 # Copyright:
@@ -23,18 +23,38 @@ $ThumbPrint = "CAD5EC9ABE94BB6CEC4FEFDC6E5B8A0EB828434F"
 
 $StoreLocation = "Cert:\LocalMachine\My"
 
-#Import Module for WebAdministration
+# Import Module for WebAdministration
 Import-Module WebAdministration
 
-#Create Application Pools
+# Create Application Pools
 New-WebAppPool -Name $HOSTNAME
 
-#Create Site
+# Create Site
 New-IISSite -Name $HOSTNAME -BindingInformation $IP":80:"$HOSTNAME -PhysicalPath $PhysicalPath -Passthru
 New-IISSiteBinding -Name $HOSTNAME -BindingInformation $IP":443:"$HOSTNAME -CertificateThumbPrint $ThumbPrint -CertStoreLocation $StoreLocation -Protocol https -SslFlag 1
 
-#Change Application Pools for Sites
+# Change Application Pools for Sites
 Set-ItemProperty "IIS:\Sites\"$HOSTNAME applicationPool $HOSTNAME
 
-#Change Hostname
+# Change Hostname
 Rename-Computer -ComputerName "SV48DXX" -NewName "$ALIAS" -Restart
+
+# Change the server's SmarterMail
+((Get-Content -path C:\SmarterTools\SmarterMail\Service\Settings\settings.json -Raw) -replace "sv48dxx.emailserver.vn","$HOSTNAME") | Set-Content -Path C:\SmarterTools\SmarterMail\Service\Settings\settings.json
+((Get-Content -path C:\SmarterTools\SmarterMail\Service\Settings\settings.json -Raw) -replace "103.15.48.XX","$IP") | Set-Content -Path C:\SmarterTools\SmarterMail\Service\Settings\settings.json
+((Get-Content -path C:\SmarterTools\SmarterMail\Service\Settings\settings.json -Raw) -replace "192.168.48.XX","$IPv4_LAN_NEW") | Set-Content -Path C:\SmarterTools\SmarterMail\Service\Settings\settings.json
+
+# Change the server's Monitor
+((Get-Content -path C:\zabbix-agent\zabbix_agentd.conf -Raw) -replace "sv48dxx.emailserver.vn","$HOSTNAME") | Set-Content -Path C:\zabbix-agent\zabbix_agentd.conf
+((Get-Content -path C:\zabbix-agent\scripts\INFO-Master.ps1 -Raw) -replace "sv48dxx.emailserver.vn","$HOSTNAME") | Set-Content -Path C:\zabbix-agent\scripts\INFO-Master.ps1
+((Get-Content -path C:\zabbix-agent\scripts\mailstorediskusage.ps1 -Raw) -replace "sv48dxx.emailserver.vn","$HOSTNAME") | Set-Content -Path C:\zabbix-agent\scripts\mailstorediskusage.ps1
+
+# Change the server's Elastic
+((Get-Content -path C:\Program Files\Filebeat\filebeat.yml -Raw) -replace "192.168.48.XX","$IPv4_LAN_NEW") | Set-Content -Path C:\Program Files\Filebeat\filebeat.yml
+((Get-Content -path C:\Logstash\config\logstash.yml -Raw) -replace "192.168.48.XX","$IPv4_LAN_NEW") | Set-Content -Path C:\Logstash\config\logstash.yml
+((Get-Content -path C:\Logstash\config\logstash.yml -Raw) -replace "XX","$ALIAS") | Set-Content -Path C:\Logstash\config\logstash.yml
+((Get-Content -path C:\Logstash\config\conf.d\sm\11_sm.conf -Raw) -replace "192.168.48.XX","$IPv4_LAN_NEW") | Set-Content -Path C:\Logstash\config\conf.d\sm\11_sm.conf
+
+# Start Up Logstash
+
+# Start Up Filebeat
