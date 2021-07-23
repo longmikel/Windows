@@ -1,6 +1,6 @@
 # Script name:      maintanance-server.ps1
-# Version:          v1.2
-# Created on:       20/07/2021
+# Version:          v1.3
+# Created on:       21/07/2021
 # Author:           Mikel
 # On Github:        https://github.com/willemdh/check_ms_iis_application_pool
 # Copyright:
@@ -58,3 +58,23 @@ Rename-Computer -ComputerName "SV48DXX" -NewName "$ALIAS" -Restart
 # Start Up Logstash
 
 # Start Up Filebeat
+
+# Create Task Scheduler Backup Config SmarterMail
+## Create a new task action
+$Action = New-ScheduledTaskAction -Execute 'powershell' -Argument '-File C:\rclone\backup-smartermail.ps1'
+
+## Create a new trigger (Daily at 5 AM)
+$Trigger = New-ScheduledTaskTrigger -Daily -At 5am
+
+## Set the task compatibility value to Windows Server 2019.
+$Settings = New-ScheduledTaskSettingsSet -Compatibility Win8
+
+## Set the task principal's user ID
+$Principal = New-ScheduledTaskPrincipal -UserId 'Administrator' -LogonType "S4U" -Id Author
+
+## Create a new Scheduled Task object using the imported values
+$Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principal
+
+## Register the scheduled task
+Register-ScheduledTask -TaskName 'SmarterMail-Backup-Settings' -InputObject $Task
+
